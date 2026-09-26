@@ -1,9 +1,10 @@
 # DESIGN — Flooding Ahmedabad: who gets cut off?
 
-**Repo:** `ahmedabad-floods` (proposed; drafted inside `chromadharma/portfolio`
-until you confirm the name, see D1) · **Engine:** `hazardnet`, imported from
+**Repo:** `chromadharma/ahmedabad-floods` (confirmed, D1; this doc moves there
+once the repo exists) · **Engine:** `hazardnet` 0.1.0, imported from
 `chromadharma/ca-road-fragility` · **Author:** Sahasrik Ragani
-**Status:** draft for review, 26 Sep 2026. Nothing downloaded or built. The only
+**Status:** decisions recorded 26 Sep 2026 (§9); awaiting your go to build.
+Nothing downloaded or built. The only
 things fetched were Sentinel-1 scene *metadata* (footprint JSON, a few kB each),
 the first 1 kB of two DEM tiles, and the DataMeet ward file (1.2 MB) for
 inspection. None of it is committed.
@@ -132,11 +133,20 @@ track repeats every 12 days, now flown by S1A or S1D.
 
 | Event | What is documented (source) | S1 scenes over the city | Verdict |
 |---|---|---|---|
-| **E1: 23–25 Jul 2026, pluvial** | 284 mm Bakrol, 245 mm Bopal in ~12 h; 3 ft standing in Bopal–Ghuma ~3 days; 126 societies waterlogged; Vasna at 134–135 ft (DeshGujarat; Counterview) | A: 20 Jul (pre) · **B: 25 Jul 01:09 UTC, western strip, during** · A: 1 Aug (post) | **Primary test event.** West only; ~2 days after peak rain |
+| **E1: 23–25 Jul 2026, pluvial** | 284 mm Bakrol, 245 mm Bopal in ~12 h; 3 ft standing in Bopal–Ghuma ~3 days; 126 societies waterlogged; Vasna at 134–135 ft (DeshGujarat; Counterview) | B: 1 Jul, 13 Jul (pre) · **B: 25 Jul 01:09 UTC, during** · B: 6 Aug (post). (A: 20 Jul, 1 Aug, 13 Aug for context only) | **The validation event (D7).** West only; ~2 days after peak rain |
 | E2: ~7 Sep 2025, fluvial + pluvial | >1 lakh cusecs in the Sabarmati, lower promenade under water, ~300 waterlogging complaints, most from the East Zone (DeshGujarat, 7 Sep 2025) | A: 4 Sep · B: 9 Sep (strip excludes the river) · A: 16 Sep | River extent likely **not observed near peak**; confirm peak date |
 | E3: ~24–26 Aug 2025, fluvial | ~51,000 cusecs through 25 gates; Dholka, Vatva, Vejalpur, Bhat, Daskroi flooded (ETV Bharat) | A: 23 Aug · B: 28 Aug | Weak; mostly downstream of the city |
 | E4: late Jul 2017, fluvial | Vasna peak 1.85 lakh cusecs, Dharoi release 1.3 lakh; 18 rain deaths in Ahmedabad (Wikipedia, via search) | A: 24 Jul · B: 29 Jul (x ≤ 72.552) · A: 5 Aug | Best riverine candidate **only if** 24 Jul is near peak; peak date unverified |
 | 2019, 2022, 22 Jul 2023, Jul 2023 river raise for U20 | Discharges and dates from search snippets only | not yet listed | **Your knowledge wanted (D7)** |
+
+**E1 is the only event used (D7).** Change detection compares images from the
+*same* track, because the radar looks at the ground from a different angle on
+each track. So the pre-flood reference for the 25 July track-B image is the
+track-B pair from 1 and 13 July, not the track-A pass on 20 July. All four
+track-B scenes (1 Jul, 13 Jul, 25 Jul, 6 Aug 2026; S1D, ≈01:09 UTC) were
+confirmed in the AWS archive. Whether it rained on 12–13 July is to be checked;
+if it did, 1 July alone is the reference. E2–E4 stay in the table as the record
+of what was checked; they are not used.
 
 Two honest consequences follow.
 
@@ -150,8 +160,7 @@ Two honest consequences follow.
    is about E1's western belt and says so. To avoid tuning on the test data,
    calibration and testing are split within E1 by space: calibrate on the
    northern half of the strip, test on the southern half, then swap and report
-   both. If a second observed pluvial event turns up (D7), that becomes the
-   test set instead.
+   both.
 
 ---
 
@@ -265,10 +274,15 @@ aggregated from 10 m.
   logged the most complaints (64), while coverage of 2026 concentrated on the
   western belt. That bias is written up, not corrected for silently.
 
-**Pre-registered claim (for you to set, D9).** Before anything is run, we
-write down what "better" means. A proposal: M3 (or M2) beats M1 by ≥ 0.10 in
-CSI skill over the null on the test half of E1, on both DEMs. If it doesn't,
-the project reports that, and the finding becomes what it would take
+**Pre-registered claim (D9, fixed now so it can't move later).** In plain
+terms, CSI is the share of the area that either the model or the satellite
+calls flooded where the two agree: 1 is perfect, 0 is no overlap. "Skill" is
+how much a model's CSI beats the lowest-ground null (M0) on the same scene.
+**M2 or M3 counts as better than HAND (M1) if its skill is at least 0.10 higher
+than M1's on the held-out half of E1, on both GLO-30 and FABDEM.** The 0.10 is a
+judgement call, not a literature standard: large enough that it can't come from
+threshold fiddling, small enough to be reachable at 30 m. If no rung clears
+it, the project reports that, and the finding becomes what it would take
 (drainage data, a better DEM) to close the gap.
 
 ### 5.5 Network step (via `hazardnet`)
@@ -293,12 +307,19 @@ For each scenario on each rung:
    `accessibility()`'s max-flow is not needed for the core question (it answers
    "how many ways out", not "how far to care") and is kept for an optional ward
    comparison.
-5. **Cut-off level.** For each hex, the lowest scenario level at which it is
-   cut off. There are two readings of "at what depth", and both are reported:
-   (a) the **forcing** level, such as "cut off at 150 mm of rain in 24 h" or
-   "at Vasna 134.75 ft"; (b) the **local depth** on the road that binds, found
-   by walking back from the removed edges. (a) is what a planner can act on;
-   (b) is the literal question. See D9.
+5. **Definitions (D9).**
+   - **Cut off:** no hospital can be reached from the hex without driving
+     through ≥ 30 cm of water. 30 cm is where the depth–disruption curve
+     takes car speed to zero.
+   - **Severely delayed:** a hospital is still reachable, but it takes more than
+     **30 min**. The 30 is a round choice, not a standard, so 20 and 45 min are
+     shown as a sensitivity check.
+   - **Cut-off level:** for each hex, the lowest scenario at which it is cut off.
+     It is reported two ways: (a) by **forcing**, such as "cut off at 150 mm of
+     rain in 24 h", which is the headline because that is the number a
+     forecast gives; (b) by the **local depth** on the road that binds, found
+     by walking back from the removed edges, which answers the brief's literal
+     "at what depth".
 
 ---
 
@@ -330,17 +351,21 @@ declaring `hazardnet` and its dependencies), tag it `v0.1.0`, and depend on
 it here with:
 
 ```
-hazardnet @ git+https://github.com/chromadharma/ca-road-fragility@v0.1.0
+hazardnet @ git+https://github.com/chromadharma/ca-road-fragility@daf9c3140439e863aef2eb2382847d1d638a550f
 ```
 
-This changes Project 1's repo, so it needs your approval (D2). Until then, a
-pinned git submodule is the fallback. It is still not a copy.
+**Done (D2).** Commit `daf9c31` on `ca-road-fragility` main adds the
+`pyproject.toml` (version 0.1.0; `osmium` becomes the `[pbf]` extra).
+Installing from that URL into a clean environment works, and Project 1's 11
+tests pass against the installed package. The `v0.1.0` tag exists locally but
+this session's git proxy refused to push it. Until you push the tag, the pin
+is the commit hash, which is equally reproducible.
 
 **Gaps found reading the code.** None of them block the start.
 
 | # | Gap | Proposal |
 |---|---|---|
-| G1 | Not installable | `pyproject.toml` upstream (above) |
+| G1 | Not installable | **Fixed** upstream (`daf9c31`) |
 | G2 | `_overlay_raster` samples each edge in a Python loop and reprojects per edge. That's fine once, but slow for ~100k edges × dozens of scenarios | Time it first. If it's slow, upstream an `overlay_many(rg, rasters)` that computes sample points once |
 | G3 | `osm.UA` hard-codes "ca-road-fragility research" as the Overpass user-agent | Upstream a `user_agent=` argument to `configure()` |
 | G4 | No depth-to-speed slowing | Study-side: rewrite `travel_s` before `time_to_targets` (the engine reads the attribute by name) |
@@ -405,22 +430,24 @@ LISFLOOD-FP build script), `viz/`, `outputs/`, `tests/`, a `Makefile`
 
 ---
 
-## 9. Decisions needed from you
+## 9. Decisions
 
-| # | Decision | My recommendation |
+Answered by you on 26 Sep 2026 unless marked *default*. A default is my
+recommendation, applied because the question was left open; any of them can be
+overridden.
+
+| # | Decision | Outcome |
 |---|---|---|
-| D1 | Repo name and home | New repo `chromadharma/ahmedabad-floods`; I move this doc there once you confirm |
-| D2 | Add `pyproject.toml` + tag `v0.1.0` to `ca-road-fragility` so `hazardnet` can be imported | Yes; it's a small change |
-| D3 | CartoDEM: register on Bhuvan and use it for comparison only (no published derivatives)? | Yes if you're eligible without ISRO clearance; otherwise drop it and say why |
-| D4 | Sentinel-1 download: ~6 scenes × ~1.26 GB ≈ **7.5 GB** full-size, or ~0.5–1 GB with windowed reads. Which processing route? | Approve up to ~8 GB; windowed reads + `sarsen` from AWS; no GEE signup |
-| D5 | Rain and river: do you have AMC gauge tables or Vasna barrage records? Sign up for NASA Earthdata (IMERG)? | Ask AMC or the press for the 23 Jul 2026 gauge table; Earthdata signup yes (free) |
-| D6 | Unit of analysis: H3 res-8 hexes primary, DataMeet wards secondary? Do you have AMC's current ward layer? | Hexes primary |
-| D7 | Flood events you know of: especially the peak dates for 2017, 2019 and 2022, and any second pluvial event with a clean date | — |
-| D8 | Hospital list to cross-check OSM, and whether to add population (WorldPop or GHS-POP) | Yes to population; you may know the best official hospital list |
-| D9 | Definitions: cut-off = no hospital reachable, or travel time > *T* min? Report by forcing level, local depth, or both? The pre-registered "better" threshold? | Both readings; *T* = 30 min as a second threshold; ≥ 0.10 CSI skill |
-| D10 | Literature search before building, to confirm no validated Ahmedabad pluvial model exists | Yes: a short pass with the `reading-repository` skill |
-
----
+| D1 | Repo name | **`chromadharma/ahmedabad-floods`.** It has to be created by you; this session can't create repositories |
+| D2 | Make `hazardnet` importable | **Yes. Done:** `ca-road-fragility@daf9c31`, v0.1.0 (§6). Tag push pending |
+| D3 | CartoDEM | *Default:* not used until you register on Bhuvan and confirm you're eligible without ISRO clearance. GLO-30 vs FABDEM is the DEM comparison |
+| D4 | Sentinel-1 download route | **Windowed reads** of the four E1 track-B scenes from AWS, then `sarsen`. GRD TIFFs are stored row by row, so a window still spans the full swath width. Estimate: ~15% of each 1.26 GB scene, **≈0.2 GB per scene, ≈0.8 GB total**. I'll stop and ask if the real figure passes 1 GB. No GEE |
+| D5 | Rain and river data | *Default:* AMC gauge totals transcribed from the cited reports, with every value's source URL kept in `data/`. No Earthdata signup, so no IMERG, unless you want it. Vasna levels from reports |
+| D6 | Unit of analysis | *Default:* H3 res-8 hexes primary; DataMeet wards secondary where they cover |
+| D7 | Validation events | **The July 2026 floods (E1)** only (§4) |
+| D8 | Hospitals and population | *Default:* OSM hospitals, with the gap to an official list noted as a limitation; a population layer (WorldPop or GHS-POP) chosen at fetch time after its licence is checked |
+| D9 | Definitions and the "better" bar | You left these to me: cut-off at ≥ 30 cm, 30 min delay threshold, both readings of "depth", and a skill margin of +0.10 (§5.4–5.5). Each is explained in plain terms where it's defined |
+| D10 | Literature check | *Default:* a short search before the models are built; the result goes in `FINDINGS.md`, including if something close exists |
 
 ## 10. References
 
